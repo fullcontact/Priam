@@ -183,6 +183,29 @@ public class BackupServlet
     }
 
     @GET
+
+    @Path("/list/restore")
+    public Response listRestore(@QueryParam(REST_HEADER_RANGE) String daterange, @QueryParam(
+            REST_HEADER_FILTER) @DefaultValue("") String filter) throws Exception {
+        Date startTime;
+        Date endTime;
+
+        if (StringUtils.isBlank(daterange) || daterange.equalsIgnoreCase("default")) {
+            startTime = new DateTime().minusDays(1).toDate();
+            endTime = new DateTime().toDate();
+        } else {
+            String[] restore = daterange.split(",");
+            AbstractBackupPath path = pathProvider.get();
+            startTime = path.parseDate(restore[0]);
+            endTime = path.parseDate(restore[1]);
+        }
+        Iterator<AbstractBackupPath> it = bkpStatusFs.list(config.getRestorePrefix(), startTime, endTime);
+        JSONObject object = new JSONObject();
+        object = constructJsonResponse(object, it, filter);
+        return Response.ok(object.toString(2), MediaType.APPLICATION_JSON).build();
+    }
+
+    @GET
     @Path("/status")
     public Response status() throws Exception
     {
@@ -192,9 +215,9 @@ public class BackupServlet
         logger.debug("Thread counts for restore is: %d", backupTCount);
         JSONObject object = new JSONObject();
         object.put("Restore", new Integer(restoreTCount));
-        object.put("Status", restoreObj.state().toString());
+        object.put("RestoreStatus", restoreObj.state().toString());
         object.put("Backup", new Integer(backupTCount));
-        object.put("Status", snapshotBackup.state().toString());
+        object.put("BackupStatus", snapshotBackup.state().toString());
         return Response.ok(object.toString(), MediaType.APPLICATION_JSON).build();
     }
 
